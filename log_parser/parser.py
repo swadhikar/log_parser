@@ -44,7 +44,6 @@ class LogFileParser:
 
     def __init__(self, config):
         self.log_file = config.app_log
-        print(f'Detected log file: {self.log_file}')
         self.config = config
         self.last_log_line = None
         self.prev_poll_time = None
