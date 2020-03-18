@@ -4,24 +4,25 @@ from constants import APP_CONFIG
 from multiprocessing import Process
 from log_parser.parser import ParserFactory
 
-app_config_list = []
+APP_CONFIG_LIST = []
+LOG_MONITOR_THREADS = []
 
 
 def load_app_config():
     app_info_list = read_json_config(APP_CONFIG)
 
-    global app_config_list
+    global APP_CONFIG_LIST
 
     for app_info in app_info_list:
         config = Config(**app_info)
-        app_config_list.append(config)
+        APP_CONFIG_LIST.append(config)
 
-    print(f'Found "{len(app_config_list)}" app_config_list to be monitored ...')
+    print(f'Found "{len(APP_CONFIG_LIST)}" APP_CONFIG_LIST to be monitored ...')
 
-    LOG_MONITOR_THREADS = []
 
+def start_poll():
     # Create processs
-    for app in app_config_list:
+    for app in APP_CONFIG_LIST:
         parser = ParserFactory.get_instance_for_app(app)
         process = Process(target=parser.poll, name=app.app_name)
         LOG_MONITOR_THREADS.append(process)
@@ -34,3 +35,4 @@ def load_app_config():
 
 if __name__ == '__main__':
     load_app_config()
+    start_poll()
