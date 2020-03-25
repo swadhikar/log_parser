@@ -1,12 +1,29 @@
-
-
 import os
 import time
 
 from datetime import datetime
-from log_parser.file_util import reverse_read, reverse_read_files, get_files
-from constants import dummy_line
-from multiprocessing import Lock, Process
+from log_parser.file_util import read_json_config, reverse_read_files, get_files
+from constants import dummy_line, APP_CONFIG
+from multiprocessing import Process
+from log_parser.models import Config
+
+app_config_list = []
+
+
+def load_app_config(return_apps=False):
+    global app_config_list
+    app_info_list = read_json_config(APP_CONFIG)
+
+    if return_apps and app_info_list:
+        return app_config_list
+
+    for app_info in app_info_list:
+        config = Config(**app_info)
+        app_config_list.append(config)
+
+    print(f'Found "{len(app_config_list)}" app_config_list to be monitored ...')
+    if return_apps:
+        return app_config_list
 
 
 class Log:
@@ -69,8 +86,6 @@ class AppLog:
 
 
 if __name__ == '__main__':
-    from log_parser.main import load_app_config
-
     _config = load_app_config(return_apps=True)
     process_list = []
 
