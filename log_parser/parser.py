@@ -1,16 +1,15 @@
+
+
 import os
 import time
-import random
 
 from datetime import datetime
-from log_parser.file_util import reverse_read
-
-from multiprocessing import Lock
-
-lock = Lock()
+from log_parser.file_util import reverse_read, reverse_read_files, get_files
+from constants import dummy_line
+from multiprocessing import Lock, Process
 
 
-class LogLine:
+class Log:
     def __init__(self, line):
         self.timestamp = None
         self.message = None
@@ -21,98 +20,69 @@ class LogLine:
         date_str = line[:23]
         if date_str:
             self.timestamp = datetime.strptime(date_str, timestamp_format)
-            self.message = line[23:]
+            self.message = line[23:].rstrip()
 
     def __repr__(self):
-        return f'Date: {self.timestamp}, Message: {self.message[:15]} ...'
+        return f'{self.text[:30]} ...'
 
 
-class ParserFactory:
-    PARSERS = {}
-
-    @classmethod
-    def get_instance_for_app(cls, config):
-        if ParserFactory.PARSERS.get(config.app_name):
-            return ParserFactory.PARSERS[config.app_name]
-        parser_instance = LogFileParser(config)
-        ParserFactory.PARSERS[config.app_name] = parser_instance
-        return parser_instance
-
-
-class LogFileParser:
-    LOG_DB = {}
+class AppLog:
 
     def __init__(self, config):
-        self.log_file = config.app_log
         self.config = config
-        self.last_log_line = None
-        self.prev_poll_time = None
-        self.last_file_size = None
+        self.last_log_line = Log(dummy_line)
 
-    def poll_log(self):
-        reversed_file = reverse_read(self.log_file)
+    def poll_logs(self):
+        """
+            Polls apps log on an interval configured
+                until last polled time is reached reverse_read file
+        """
+        file_path = os.path.dirname(self.config.app_log)
+        files = get_files(file_path)
 
-        # Capture the last line to be stored for next iteration
-        last_line = next(reversed_file)
+        first_read_line = ''
 
-        if self.has_log_rolled():
-            yield last_line
+        try:
+            for index, line in enumerate(reverse_read_files(files)):
+                current_log = Log(line)
+                if index == 0:
+                    first_read_line = line
+                if current_log.timestamp > self.last_log_line.timestamp:
+                    print(line, end='')  # process failure point lines (store to es)
+                    # process_app(self.config.app_name)
+                else:
+                    break
 
-            # Return all lines if not polled before
-            if self.prev_poll_time is None:
-                for line in reversed_file:
-                    yield line
-            else:
-                for current_line in reversed_file:
-                    if LogLine(current_line).timestamp > self.last_log_line.timestamp:
-                        yield current_line
+                if first_read_line.strip() != '':  # bug
+                    self.last_log_line = Log(first_read_line)
+        except:
+            print('Failure happened...')
 
-        # Set the last logged line after processing
-        self.last_log_line = LogLine(last_line)
-
-        # Clear dict and Update last polled time
-        self.prev_poll_time = datetime.now()
-        LogFileParser.LOG_DB.clear()
-        LogFileParser.LOG_DB[self.prev_poll_time] = os.stat(self.log_file).st_size
-
-    def has_log_rolled(self):
-        current_file_size = os.stat(self.log_file).st_size
-        previous_file_size = LogFileParser.LOG_DB.get(self.prev_poll_time)
-        # print(f'{self.config.app_name} - Previous size: {previous_file_size}')
-        # print(f'{self.config.app_name} - Current  size: {current_file_size}')
-
-        if previous_file_size is None:  # first time parsing
-            return True
-
-        if current_file_size > LogFileParser.LOG_DB.get(self.prev_poll_time):
-            return True
-
-        return False
-
-    def dump_logs(self, num_lines=0, test_log_lines=('test 1', 'test2')):
-        from multiprocessing import Lock
-        lock = Lock()
-        timestamp_format = '%m/%d/%Y %H:%M:%S.%f'
-        print(f'Dumping {num_lines} line to the test log...')
-
-        # Generate log
-        lines = []
-        for _ in range(num_lines):
-            current_time = datetime.now().strftime(timestamp_format)[:-3]
-            lines.append(f'{current_time}: {random.choice(test_log_lines)}\n')
-
-        if lines:
-            lock.acquire()
-            with open(self.log_file, 'a') as _file:
-                _file.writelines(lines)
-            lock.release()
-        self.last_file_size = os.stat(self.log_file).st_size
-        time.sleep(1)
-
-    def poll(self):
+    def start_poll(self):
         polling_interval = self.config.poll_interval
-        print(f'Started polling against log for app: {self.config.app_name}')
+        print(f'Started polling against log for app: {self.config.app_name} for '
+              f'every "{polling_interval}" seconds')
+
         while True:
-            lines = [line for line in self.poll_log() if line]
-            print(f'Detected {len(lines)} new lines in log: {self.config.app_name}')
+            self.poll_logs()
             time.sleep(polling_interval)
+
+
+if __name__ == '__main__':
+    from log_parser.main import load_app_config
+
+    _config = load_app_config(return_apps=True)
+    process_list = []
+
+    for app_config in _config:
+        _process = Process(target=AppLog(app_config).start_poll, name=app_config.app_name)
+        _process.start()
+        print(f'Started monitor app "{app_config.app_name}" in process: {_process.name}')
+        process_list.append(_process)
+
+    # print(config)
+
+    app_log = AppLog(_config)
+    app_log.start_poll()
+
+    import csv

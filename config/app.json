@@ -1,16 +1,18 @@
 [
   {
     "app_name": "web_app",
+    "failure_point": "[ERROR] ... ",
+    "warning_point": "[WARN] ...",
     "log_file": "webapp.log",
-    "log_path": "C:\\Users\\schandramohan\\Documents\\swadhi\\test_git\\trial_and_error\\logs",
-    "poll_interval": 5,
+    "poll_interval": 10,
     "server_ip": "127.0.0.1",
     "server_port": 3010
   },
   {
     "app_name": "db_app",
+    "failure_point": " Failed to ... ",
+    "warning_point": " Unable to ...",
     "log_file": "dbapp.log",
-    "log_path": "C:\\Users\\schandramohan\\Documents\\swadhi\\test_git\\trial_and_error\\logs",
     "poll_interval": 5,
     "server_ip": "127.0.0.1",
     "server_port": 3010
