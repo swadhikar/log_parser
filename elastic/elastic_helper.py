@@ -10,8 +10,10 @@ curl -X POST "localhost:9200/twitter/_doc/?pretty" -H 'Content-Type: application
 from subprocess import Popen, PIPE
 import re
 
-elastic_host = 'localhost'
-elastic_port = 9200
+# elastic_host = 'localhost'
+# elastic_port = 9200
+# elastic_url_ = f'{elastic_host}:{elastic_port}'
+elastic_url_ = f'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com/'
 
 
 def execute_command(command):
@@ -21,13 +23,17 @@ def execute_command(command):
 
 
 def create_index(index):
-    query = f'curl -X PUT "{elastic_host}:{elastic_port}/{index}"'
+    query = f'curl -X PUT "{elastic_url_}/{index}"'
     result, error = execute_command(query)
     if re.search('acknowledged.*true', result):
         print(f'Created index successfully: {index}')
         return True
     print(f'Failed to create index: {index}. {error}')
     return False
+
+
+def get_documents_count(index):
+    pass
 
 
 if __name__ == '__main__':
