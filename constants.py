@@ -10,3 +10,5 @@ print(APP_CONFIG)
 # print(f'Log path    : {LOG_DIR}')
 
 dummy_line = '01/01/1900 00:00:00.000: Just a dummy line'
+
+KIBANA_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'  # %m/%d/%Y %H:%M:%S.%f

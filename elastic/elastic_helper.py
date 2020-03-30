@@ -2,17 +2,22 @@ from subprocess import Popen, PIPE
 import re
 
 from common import str_to_dict
+import constants
 
-elastic_host = 'localhost'
-elastic_port = 9200
-elastic_url_ = f'{elastic_host}:{elastic_port}'
-# elastic_url_ = f'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com'
+# elastic_host = 'localhost'
+# elastic_port = 9200
+# elastic_url_ = f'{elastic_host}:{elastic_port}'
 
+
+elastic_url_ = f'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com'
+
+
+# kibana_url = 'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com/_plugin/kibana/app'
 
 def execute_command(command):
     result = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
     result, error = result.communicate()
-    return result.decode('utf-8'), error
+    return result.decode('utf-8'), error.decode('utf-8')
 
 
 def create_index(index):
@@ -48,12 +53,11 @@ def create_mapping(index):
                     "mappings": {{ 
                         "properties": {{ 
                             "log_time":    {{ "type": "date" }},
-                            "text":   {{ "type": "text"  }}
+                            "wait_time":   {{ "type": "integer"  }}
                         }}
                     }}
                 }}'"""
     result, error = execute_command(query)
-    print(result)
     if re.search('acknowledged.*true', result):
         print(f'Created mapping successfully for index: {index}')
         return True
@@ -66,7 +70,7 @@ def add_date_text(index, date, text):
     query = f"""curl -X POST "{elastic_url_}/{index}/_doc?pretty" -H 'Content-Type: application/json' -d' 
                {{ 
                     "log_time": "{date}", 
-                    "text": "{text}" 
+                    "wait_time": {text} 
                }}'"""
 
     result, error = execute_command(query)
@@ -80,11 +84,21 @@ def add_date_text(index, date, text):
 
 
 if __name__ == '__main__':
+    from datetime import datetime, timedelta
+    import random
+
     _index = 'test123'
-    sample_date = '2015-01-02T12:10:30Z'
+    # delete_index(index=_index)
+    # create_mapping(index=_index)
+
+    for num in range(5):
+        timestamp = datetime.now() + timedelta(days=num)
+        timestamp = timestamp.strftime(constants.KIBANA_DATE_FORMAT)
+        waited_for = random.randint(1, 5)
+        for _ in range(random.randint(1, 3)):
+            add_date_text(_index, timestamp, waited_for)
+
     # create_index(index=index)
-    # count = get_documents_count(index=index)
+    # count = get_documents_c/ount(index=_index)
     # print(count)
-    # delete_index(index=index)
-    # create_mapping(index)
-    add_date_text(_index, sample_date, 'second sample text that should be stored!')
+    # add_date_text(_index, sample_date, 'fourth sample text')
