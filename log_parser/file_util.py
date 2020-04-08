@@ -12,7 +12,6 @@ def reverse_read_files(file_list):
     # TODO: Need to include logging
     for filename in file_list:
         file = open(filename)
-        print(f'Reading "{os.path.basename(filename)}" reversed...')
         try:
             lock.acquire()
             part = ''
@@ -67,11 +66,11 @@ def read_json_config(config_path):
 
 def get_files(file_path):
     listed_files = os.listdir(file_path)
-    print(listed_files)
+    # print(listed_files)
     files_list = [os.path.join(file_path, file) for file in listed_files[1:]]
-    print(f'Before sorting: {files_list}')
+    # print(f'Before sorting: {files_list}')
     rotated_files = sorted(files_list, reverse=True)
-    print(f'After sorting: {rotated_files}')
+    # print(f'After sorting: {rotated_files}')
     return [os.path.join(file_path, listed_files[0])] + rotated_files
 """
 # pseudocode:

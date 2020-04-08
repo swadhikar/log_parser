@@ -1,11 +1,12 @@
 import os
 import time
+import re
+from dateutil.parser import parse
 
-from datetime import datetime
-from log_parser.file_util import read_json_config, reverse_read_files, get_files
-from constants import dummy_line, APP_CONFIG
-from multiprocessing import Process
+from log_parser.file_util import read_json_config, reverse_read_files, get_files, reverse_read
+from constants import dummy_line
 from log_parser.models import Config
+from common import convert_time_format
 
 app_config_list = []
 
@@ -27,27 +28,31 @@ def load_app_config(return_apps=False):
 
 
 class Log:
-    def __init__(self, line):
+    def __init__(self, line, message_format):
         self.timestamp = None
+        self.level = None
         self.message = None
+        self.message_format = message_format
         self.text = line
         self.parse_line(line)
 
-    def parse_line(self, line, timestamp_format='%m/%d/%Y %H:%M:%S.%f'):
-        date_str = line[:23]
-        if date_str:
-            self.timestamp = datetime.strptime(date_str, timestamp_format)
-            self.message = line[23:].rstrip()
+    def parse_line(self, line):
+        search_object = re.search(self.message_format, line)
+        date_str = search_object.group(1)
+        self.timestamp = parse(date_str)
+        self.level = search_object.group(2)
+        self.message = search_object.group(3)
 
     def __repr__(self):
-        return f'{self.text[:30]} ...'
+        return f'Log<{self.timestamp} - {self.level}: {self.message[:20]}> ...'
 
 
 class AppLog:
 
     def __init__(self, config):
         self.config = config
-        self.last_log_line = Log(dummy_line)
+        self.message_format = convert_time_format(config.message_format)
+        self.last_log_line = Log(dummy_line, self.message_format)
 
     def poll_logs(self):
         """
@@ -61,19 +66,24 @@ class AppLog:
 
         try:
             for index, line in enumerate(reverse_read_files(files)):
-                current_log = Log(line)
+                current_log = Log(line, self.message_format)
+
                 if index == 0:
                     first_read_line = line
+
                 if current_log.timestamp > self.last_log_line.timestamp:
-                    print(line, end='')  # process failure point lines (store to es)
+                    print(current_log.timestamp, end=' ' * 10)  # process failure point lines (store to es)
+                    print(current_log.level, end=' ' * 10)  # process failure point lines (store to es)
+                    print(current_log.message[:50])  # process failure point lines (store to es)
                     # process_app(self.config.app_name)
                 else:
                     break
 
-                if first_read_line.strip() != '':  # bug
-                    self.last_log_line = Log(first_read_line)
-        except:
-            print('Failure happened...')
+            if first_read_line.strip() != '':  # bug
+                self.last_log_line = Log(first_read_line, self.message_format)
+
+        except Exception as e:
+            print(f'Failure happened...: {e}')
 
     def start_poll(self):
         polling_interval = self.config.poll_interval
@@ -86,18 +96,15 @@ class AppLog:
 
 
 if __name__ == '__main__':
-    _config = load_app_config(return_apps=True)
-    process_list = []
+    from constants import APP_CONFIG
+    from log_parser.file_util import read_json_config, pretty_print
 
-    for app_config in _config:
-        _process = Process(target=AppLog(app_config).start_poll, name=app_config.app_name)
-        _process.start()
-        print(f'Started monitor app "{app_config.app_name}" in process: {_process.name}')
-        process_list.append(_process)
+    # Read json config as dictionary
+    config_json = read_json_config(APP_CONFIG)[0]
 
-    # print(config)
+    # Create configuration object
+    config = Config(**config_json)
 
-    app_log = AppLog(_config)
+    # Create AppLog object
+    app_log = AppLog(config)
     app_log.start_poll()
-
-    import csv

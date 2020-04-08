@@ -4,11 +4,9 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.join(PROJECT_DIR, 'logs')
 APP_CONFIG = os.path.join(PROJECT_DIR, 'config', 'app.json')
 
-print(APP_CONFIG)
-
-# print(f'Project dir : {PROJECT_DIR}')
-# print(f'Log path    : {LOG_DIR}')
-
-dummy_line = '01/01/1900 00:00:00.000: Just a dummy line'
-
+# Kibana date time format
 KIBANA_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'  # %m/%d/%Y %H:%M:%S.%f
+
+# Dummy line
+dummy_line = '[Fri Jan 01 00:00:00.000000 1900 Europe/Paris] info: Just a dummy line'
+
