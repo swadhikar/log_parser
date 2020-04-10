@@ -4,7 +4,10 @@ import re
 from common import str_to_dict
 import constants
 
+import requests
+
 # elastic_host = 'localhost'
+# elastic_port = 9200
 # elastic_port = 9200
 # elastic_url_ = f'{elastic_host}:{elastic_port}'
 
@@ -78,8 +81,33 @@ def add_date_text(index, date, text):
         print(f'Added date time and text successfully: {date}')
         return True
 
-    print(f'Failed to add date time and text: {date}')
+    print(f'Failed to add date time and text: {date}. {error}')
     print(result)
+    return False
+
+
+def add_doc(index, date, text):
+    payload = {
+        "log_time": date,
+        "wait_time": text
+    }
+
+    url = f'{elastic_url_}/{index}/_doc?pretty'
+    headers = {
+        'content-type': 'application/json',
+        'accept': 'application/json'
+    }
+    response = requests.post(
+        url,
+        json=payload,
+        headers=headers
+    )
+
+    if response.status_code == 200:
+        print(f'Added document successfully!')
+        return True
+
+    print(f'Failed to add document.\n{response.text}')
     return False
 
 
@@ -96,7 +124,8 @@ if __name__ == '__main__':
         timestamp = timestamp.strftime(constants.KIBANA_DATE_FORMAT)
         waited_for = random.randint(1, 5)
         for _ in range(random.randint(1, 3)):
-            add_date_text(_index, timestamp, waited_for)
+            # add_date_text(_index, timestamp, waited_for)
+            add_doc(_index, timestamp, waited_for)
 
     # create_index(index=index)
     # count = get_documents_c/ount(index=_index)
