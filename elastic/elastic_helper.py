@@ -6,13 +6,12 @@ import constants
 
 import requests
 
-# elastic_host = 'localhost'
-# elastic_port = 9200
-# elastic_port = 9200
-# elastic_url_ = f'{elastic_host}:{elastic_port}'
+elastic_host = 'localhost'
+elastic_port = 9200
+elastic_url_ = f'http://{elastic_host}:{elastic_port}'
 
 
-elastic_url_ = f'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com'
+# elastic_url_ = f'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com'
 
 
 # kibana_url = 'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com/_plugin/kibana/app'
@@ -86,6 +85,25 @@ def add_date_text(index, date, text):
     return False
 
 
+def add_log_info(index, timestamp, level, message, app_name):
+    query = f"""curl -X POST "{elastic_url_}/{index}/_doc?pretty" -H "Content-Type: application/json" -d' 
+               {{ 
+                    "timestamp": "{timestamp}", 
+                    "level": "{level}", 
+                    "message": "{message}", 
+                    "app_name": "{app_name}" 
+               }}'"""
+
+    result, error = execute_command(query)
+    if re.search('result.*created', result):
+        print(f'Added date time and text successfully: {timestamp}')
+        return True
+
+    print(f'Failed to add date time and text: {timestamp}. {error}')
+    print(result)
+    return False
+
+
 def add_doc(index, date, text):
     payload = {
         "log_time": date,
@@ -115,17 +133,17 @@ if __name__ == '__main__':
     from datetime import datetime, timedelta
     import random
 
-    _index = 'test123'
+    _index = 'log_info'
     # delete_index(index=_index)
     # create_mapping(index=_index)
 
-    for num in range(5):
-        timestamp = datetime.now() + timedelta(days=num)
-        timestamp = timestamp.strftime(constants.KIBANA_DATE_FORMAT)
-        waited_for = random.randint(1, 5)
-        for _ in range(random.randint(1, 3)):
-            # add_date_text(_index, timestamp, waited_for)
-            add_doc(_index, timestamp, waited_for)
+    # for num in range(5):
+    #     timestamp = datetime.now() + timedelta(days=num)
+    #     timestamp = timestamp.strftime(constants.KIBANA_DATE_FORMAT)
+    #     waited_for = random.randint(1, 5)
+    #     for _ in range(random.randint(1, 3)):
+    #         # add_date_text(_index, timestamp, waited_for)
+    #         add_doc(_index, timestamp, waited_for)
 
     # create_index(index=index)
     # count = get_documents_c/ount(index=_index)

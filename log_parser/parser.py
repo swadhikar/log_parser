@@ -3,6 +3,7 @@ import time
 import re
 from dateutil.parser import parse
 
+from elastic.elastic_helper import add_log_info
 from log_parser.file_util import read_json_config, reverse_read_files, get_files, reverse_read
 from constants import dummy_line
 from log_parser.models import Config
@@ -72,10 +73,17 @@ class AppLog:
                     first_read_line = line
 
                 if current_log.timestamp > self.last_log_line.timestamp:
-                    print(current_log.timestamp, end=' ' * 10)  # process failure point lines (store to es)
-                    print(current_log.level, end=' ' * 10)  # process failure point lines (store to es)
-                    print(current_log.message[:50])  # process failure point lines (store to es)
-                    # process_app(self.config.app_name)
+                    # print(current_log.timestamp, end=' ' * 10)  # process failure point lines (store to es)
+                    # print(current_log.level, end=' ' * 10)  # process failure point lines (store to es)
+                    # print(current_log.message[:50])  # process failure point lines (store to es)
+                    #
+                    add_log_info(
+                        index='log_info',
+                        timestamp=current_log.timestamp,
+                        level=current_log.level,
+                        message=current_log.message,
+                        app_name=config.app_name
+                    )
                 else:
                     break
 
