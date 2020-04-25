@@ -1,7 +1,9 @@
 from log_parser.parser import AppLog
 from log_parser.models import Config
-
 from multiprocessing import Process
+
+from constants import APP_CONFIG
+from log_parser.file_util import read_json_config, pretty_print
 
 
 class PollManager:
@@ -35,10 +37,12 @@ class PollManager:
             print(f'Started monitoring process: {process.name}')
 
 
-if __name__ == '__main__':
-    from constants import APP_CONFIG
-    from log_parser.file_util import read_json_config, pretty_print
-
+def main():
+    """Start of execution"""
     config_data = read_json_config(APP_CONFIG)
     pretty_print(config_data)
-    poll = PollManager(config_data)
+    PollManager(config_data)
+
+
+if __name__ == '__main__':
+    main()

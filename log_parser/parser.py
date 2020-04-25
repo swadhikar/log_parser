@@ -8,25 +8,8 @@ from log_parser.file_util import reverse_read_files, get_files
 from log_parser.models import Config
 from common import convert_time_format, get_dummy_time
 
-app_config_list = []
 
-
-def load_app_config(return_apps=False):
-    global app_config_list
-    app_info_list = read_json_config(APP_CONFIG)
-
-    if return_apps and app_info_list:
-        return app_config_list
-
-    for app_info in app_info_list:
-        config = Config(**app_info)
-        app_config_list.append(config)
-
-    print(f'Found "{len(app_config_list)}" app_config_list to be monitored ...')
-    if return_apps:
-        return app_config_list
-
-
+# Todo: Need to move Log into different file
 class Log:
     def __init__(self, line, message_format, dummy=False):
         self.timestamp = None
@@ -78,7 +61,7 @@ class AppLog:
 
                 if current_log.timestamp > self.last_log_line.timestamp:
                     add_log_info(
-                        index='log_info',
+                        index='log_info',  # todo: Need to move index to config
                         timestamp=current_log.timestamp,
                         level=current_log.level,
                         message=current_log.message,
@@ -91,7 +74,7 @@ class AppLog:
                 self.last_log_line = Log(first_read_line, self.message_format)
 
         except Exception as e:
-            print(f'Failure happened...: {e}')
+            print(f'Failed to store log info into ES: {e}')
 
     def start_poll(self):
         polling_interval = self.config.poll_interval
