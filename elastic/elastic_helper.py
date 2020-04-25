@@ -1,20 +1,13 @@
 from subprocess import Popen, PIPE
+import requests
 import re
 
 from common import str_to_dict
-import constants
-
-import requests
 
 elastic_host = 'localhost'
 elastic_port = 9200
-elastic_url_ = f'http://{elastic_host}:{elastic_port}'
+elastic_url_ = f'{elastic_host}:{elastic_port}'
 
-
-# elastic_url_ = f'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com'
-
-
-# kibana_url = 'https://search-comm-air-metrics-6bn4elbf3jwzp3xk4kdppn2ige.us-east-2.es.amazonaws.com/_plugin/kibana/app'
 
 def execute_command(command):
     result = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
@@ -49,13 +42,15 @@ def get_documents_count(index):
     return str_to_dict(result)['count']
 
 
-def create_mapping(index):
+def create_log_info_mapping(index):
     query = f"""curl -X PUT "{elastic_url_}/{index}?pretty" -H 'Content-Type: application/json' -d' 
                 {{ 
                     "mappings": {{ 
                         "properties": {{ 
-                            "log_time":    {{ "type": "date" }},
-                            "wait_time":   {{ "type": "integer"  }}
+                            "timestamp":   {{ "type": "date", "format": "yyyy-MM-dd HH:mm:ss.SSSSSS" }},
+                            "level":       {{ "type": "keyword" }}, 
+                            "message":     {{ "type": "text" }}, 
+                            "app_name":    {{ "type": "keyword" }} 
                         }}
                     }}
                 }}'"""
@@ -86,6 +81,8 @@ def add_date_text(index, date, text):
 
 
 def add_log_info(index, timestamp, level, message, app_name):
+    message = message.replace("'", '')  # todo: clean up quotations in the string
+
     query = f"""curl -X POST "{elastic_url_}/{index}/_doc?pretty" -H "Content-Type: application/json" -d' 
                {{ 
                     "timestamp": "{timestamp}", 
@@ -96,11 +93,12 @@ def add_log_info(index, timestamp, level, message, app_name):
 
     result, error = execute_command(query)
     if re.search('result.*created', result):
-        print(f'Added date time and text successfully: {timestamp}')
+        print(f'Added log info successfully for app: {app_name}')
         return True
 
-    print(f'Failed to add date time and text: {timestamp}. {error}')
-    print(result)
+    print(f'Failed to add below log info.')
+    print(f'timestamp: {timestamp}\nlevel: {level}\nmessage: {message}\napp name: {app_name}')
+    print(f'Caused by: {error}')
     return False
 
 
@@ -129,11 +127,16 @@ def add_doc(index, date, text):
     return False
 
 
+# # Must create a mapping at the start of project
+log_info_index = 'log_info'
+delete_index(log_info_index)  # todo: remove clean up
+create_log_info_mapping(log_info_index)
+
 if __name__ == '__main__':
     from datetime import datetime, timedelta
     import random
 
-    _index = 'log_info'
+    # _index = 'log_info'
     # delete_index(index=_index)
     # create_mapping(index=_index)
 

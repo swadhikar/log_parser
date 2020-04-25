@@ -4,10 +4,9 @@ import re
 from dateutil.parser import parse
 
 from elastic.elastic_helper import add_log_info
-from log_parser.file_util import read_json_config, reverse_read_files, get_files, reverse_read
-from constants import dummy_line
+from log_parser.file_util import reverse_read_files, get_files
 from log_parser.models import Config
-from common import convert_time_format
+from common import convert_time_format, get_dummy_time
 
 app_config_list = []
 
@@ -29,20 +28,25 @@ def load_app_config(return_apps=False):
 
 
 class Log:
-    def __init__(self, line, message_format):
+    def __init__(self, line, message_format, dummy=False):
         self.timestamp = None
         self.level = None
         self.message = None
         self.message_format = message_format
         self.text = line
-        self.parse_line(line)
+        self.parse_line(line, dummy)
 
-    def parse_line(self, line):
-        search_object = re.search(self.message_format, line)
-        date_str = search_object.group(1)
-        self.timestamp = parse(date_str)
-        self.level = search_object.group(2)
-        self.message = search_object.group(3)
+    def parse_line(self, line, dummy):
+        if dummy:
+            self.timestamp = get_dummy_time()
+            self.level = ''
+            self.message = ''
+        else:
+            search_object = re.search(self.message_format, line)
+            date_str = search_object.group(1)
+            self.timestamp = parse(date_str)
+            self.level = search_object.group(2)
+            self.message = search_object.group(3)
 
     def __repr__(self):
         return f'Log<{self.timestamp} - {self.level}: {self.message[:20]}> ...'
@@ -53,7 +57,7 @@ class AppLog:
     def __init__(self, config):
         self.config = config
         self.message_format = convert_time_format(config.message_format)
-        self.last_log_line = Log(dummy_line, self.message_format)
+        self.last_log_line = Log('', self.message_format, dummy=True)
 
     def poll_logs(self):
         """
@@ -73,16 +77,12 @@ class AppLog:
                     first_read_line = line
 
                 if current_log.timestamp > self.last_log_line.timestamp:
-                    # print(current_log.timestamp, end=' ' * 10)  # process failure point lines (store to es)
-                    # print(current_log.level, end=' ' * 10)  # process failure point lines (store to es)
-                    # print(current_log.message[:50])  # process failure point lines (store to es)
-                    #
                     add_log_info(
                         index='log_info',
                         timestamp=current_log.timestamp,
                         level=current_log.level,
                         message=current_log.message,
-                        app_name=config.app_name
+                        app_name=self.config.app_name
                     )
                 else:
                     break
@@ -108,11 +108,12 @@ if __name__ == '__main__':
     from log_parser.file_util import read_json_config, pretty_print
 
     # Read json config as dictionary
-    config_json = read_json_config(APP_CONFIG)[0]
+    # config_json = read_json_config(APP_CONFIG)[0]
+    config_json = read_json_config(APP_CONFIG)[1]
 
     # Create configuration object
-    config = Config(**config_json)
+    _config = Config(**config_json)
 
     # Create AppLog object
-    app_log = AppLog(config)
+    app_log = AppLog(_config)
     app_log.start_poll()

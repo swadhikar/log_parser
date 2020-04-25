@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 
 
@@ -14,18 +15,16 @@ def str_to_dict(string):
 def convert_time_format(format):
     new_format = format.replace('[', '\[') \
         .replace(']', '\]') \
-        .replace('timestamp', '(.*)') \
+        .replace('timestamp', '(.*?)') \
         .replace('level', '(.*?)') \
         .replace('message', '(.*)')
     print(f'Date format converted: {new_format}')
     return new_format
 
 
-def get_dummy_line(time_format):
-    from datetime import datetime
+def get_dummy_time():
     past_date = datetime(day=1, month=1, year=1900, hour=0, minute=0, second=0)
-    text = past_date.strptime(past_date, time_format)
-    print(text)
+    return past_date
 
 # convert_time_format('[timestamp Europe/Paris] level: message')
 # convert_time_format('timestamp - level: message')

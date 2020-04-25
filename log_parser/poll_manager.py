@@ -30,7 +30,7 @@ class PollManager:
     @classmethod
     def _start_scheduler(cls):
         for app_name, parser in PollManager.POLL_JOB_DB.items():
-            process = Process(target=parser.poll, name=app_name)
+            process = Process(target=parser.start_poll, name=app_name)
             process.start()
             print(f'Started monitoring process: {process.name}')
 
