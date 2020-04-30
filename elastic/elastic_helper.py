@@ -76,9 +76,9 @@ def add_log_info(index, timestamp, level, message, app_name):
     return False
 
 
-# Note: 
-#   Lines 80-83 should be run only on first time execution
-#   Must create a mapping at the start of project
-log_info_index = 'log_info'
-delete_index(log_info_index)  # todo: remove clean up
-create_log_info_mapping(log_info_index)
+# # Note:
+# #   Lines 80-83 should be run only on first time execution
+# #   Must create a mapping at the start of project
+# log_info_index = 'log_info'
+# delete_index(log_info_index)  # todo: remove clean up
+# create_log_info_mapping(log_info_index)

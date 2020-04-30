@@ -67,6 +67,7 @@ class AppLog:
                         message=current_log.message,
                         app_name=self.config.app_name
                     )
+                    # print(f'{current_log}')
                 else:
                     break
 

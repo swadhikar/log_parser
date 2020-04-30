@@ -32,38 +32,42 @@ class PollManager:
                 continue
 
             config_obj = Config(**config)
-            parser = AppLog(config_obj)
 
             print(f'Detected new app for polling: {config_obj.app_name}')
             PollManager.POLL_JOB_DB[config_obj.app_name] = {
-                'app_log': parser,
+                'app_log': AppLog(config_obj),
                 'status': constants.SCHEDULED
             }
 
     @classmethod
-    def _start_scheduler(cls):
-        job_config_read_interval = 15  # todo: config file
+    def _create_process(cls, app_name, app_log_instance):
+        process = Process(target=app_log_instance.start_poll, name=app_name)
+        process.start()
+        PollManager.POLL_JOB_DB[app_name]['status'] = constants.STARTED  # update status
+        print(f'Started monitoring process for app: {app_name}')
 
+    @classmethod
+    def _schedule_jobs(cls):
+        for app_name, app_info_dict in PollManager.POLL_JOB_DB.items():
+            # Filter scheduled jobs
+            if app_info_dict['status'] != constants.SCHEDULED:
+                continue
+
+            # Create a process that polls this app
+            cls._create_process(app_name, app_log_instance=app_info_dict['app_log'])
+
+    @classmethod
+    def _start_scheduler(cls, config_read_interval=5 * 1):
         while True:
             # Read json to find new jobs
             cls._parse_config()
 
             # Start scheduling the new jobs
-            for app_name, app_info_dict in PollManager.POLL_JOB_DB.items():
-                # Filter scheduled jobs
-                app_schedule_status = app_info_dict['status']
-                if app_schedule_status != constants.SCHEDULED:
-                    continue
+            cls._schedule_jobs()
+            # print(f'{PollManager.POLL_JOB_DB}')
 
-                parser = app_info_dict['app_log']  # fetch AppLog instance
-                process = Process(target=parser.start_poll, name=app_name)
-                process.start()
-                PollManager.POLL_JOB_DB[app_name]['status'] = constants.STARTED  # update status
-                print(f'Started monitoring process for app: {app_name}')
-
-            # Wait for next read
-            print(f'{PollManager.POLL_JOB_DB}')
-            time.sleep(job_config_read_interval)
+            # Wait and read
+            time.sleep(config_read_interval)
 
 
 if __name__ == '__main__':
