@@ -85,6 +85,9 @@ class AppLog:
             self.poll_logs()
             time.sleep(polling_interval)
 
+    def __repr__(self):
+        return f'Applog<{self.config.app_name}>'
+
 
 if __name__ == '__main__':
     from constants import APP_CONFIG
